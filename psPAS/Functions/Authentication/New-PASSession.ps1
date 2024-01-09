@@ -723,7 +723,6 @@ function New-PASSession {
 				}
 
 			} finally {
-
 				#If Logon Result
 				If ($PASSession) {
 
@@ -806,6 +805,7 @@ function New-PASSession {
 					#Version information available in module scope.
 					Set-Variable -Name ExternalVersion -Value $Version -Scope Script
 
+					Set-Variable -Name Token -Value $PASSession -Scope Global
 				}
 
 			}

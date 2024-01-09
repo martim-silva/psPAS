@@ -1,26 +1,41 @@
 # .ExternalHelp psPAS-help.xml
 Function Get-PASConnectionComponent {
 	[CmdletBinding()]
-	param(	)
+	param (
+        [Parameter(Mandatory=$false)]
+        [string]$Search
+    )
 
 	BEGIN {
-
-		Assert-VersionRequirement -RequiredVersion 11.5
 
 	}#begin
 
 	PROCESS {
 
+        Assert-VersionRequirement -RequiredVersion 11.4
 
-		#Create URL for request
-		$URI = "$Script:BaseURI/API/PSM/Connectors"
+		$URI = "$Script:BaseURI/API/psm/connectors"
 
-		#send request to web service
+		#Send request to web service
 		$result = Invoke-PASRestMethod -Uri $URI -Method GET -WebSession $Script:WebSession
 
-		if ($null -ne $result.PSMConnectors) {
+		If ($null -ne $result) {
 
-			$result | Select-Object -ExpandProperty PSMConnectors
+			#11.1+ returns result under "platforms" property
+			If ($result.PSMConnectors) {
+
+				$result = $result | Select-Object -ExpandProperty PSMConnectors
+				$result = $result | Select-Object @{Name='Id'; Expression={$_.ID}}, @{Name='DisplayName'; Expression={$_.DisplayName}}
+			}
+
+			if ($PSBoundParameters.ContainsKey('Search')) {
+				$result = $result | Where-Object { $_.Name -like "*$Search*" -or $_.DisplayName -like "*$Search*" }
+			}
+
+			#Return Results
+			$result |
+
+				Add-ObjectDetail -typename 'psPAS.CyberArk.Vault.ConnectionComponent'
 
 		}
 

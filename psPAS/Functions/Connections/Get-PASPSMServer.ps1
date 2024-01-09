@@ -1,28 +1,42 @@
 # .ExternalHelp psPAS-help.xml
 Function Get-PASPSMServer {
 	[CmdletBinding()]
-	param(	)
+	param (
+        [Parameter(Mandatory=$false)]
+        [string]$Search
+    )
 
 	BEGIN {
-
-		Assert-VersionRequirement -RequiredVersion 11.5
 
 	}#begin
 
 	PROCESS {
 
+        Assert-VersionRequirement -RequiredVersion 11.5
 
-		#Create URL for request
-		$URI = "$Script:BaseURI/API/PSM/Servers"
+		$URI = "$Script:BaseURI/API/psm/servers"
 
-		#send request to web service
+		#Send request to web service
 		$result = Invoke-PASRestMethod -Uri $URI -Method GET -WebSession $Script:WebSession
 
-		if ($null -ne $result.PSMServers) {
+		If ($null -ne $result) {
 
-			$result | Select-Object -ExpandProperty PSMServers
+			#11.1+ returns result under "platforms" property
+			If ($result.PSMServers) {
 
+				$result = $result | Select-Object -ExpandProperty PSMServers
+			}
+
+			if ($PSBoundParameters.ContainsKey('Search')) {
+				$result = $result | Where-Object { $_.Name -like "*$Search*" -or $_.DisplayName -like "*$Search*" }
+			}
+            $result = $result | Select-Object @{Name='Id'; Expression={$_.ID}}, @{Name='Name'; Expression={$_.Name}}, @{Name='IsLoadBalancer'; Expression={If ($_.Address -like "*bmwgroup.net") {$true} Else {$false}}}, @{Name='Address'; Expression={$_.Address}}
 		}
+
+			#Return Results
+			$result | Add-ObjectDetail -typename 'psPAS.CyberArk.Vault.PSMServer'
+
+
 
 	}#process
 
